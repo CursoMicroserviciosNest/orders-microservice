@@ -1,0 +1,15 @@
+services:
+  orders-db:
+    container_name: orders-database
+    image: postgres:16.2
+    restart: always
+    volumes:
+      - ./orders-db-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=ordersdb
+volumes:
+  orders-db-data:
