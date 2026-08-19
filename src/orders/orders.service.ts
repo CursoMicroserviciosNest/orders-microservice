@@ -7,6 +7,8 @@ import { OrderPaginationDto } from './dto/order-pagination.dto';
 import { NATS_SERVICE } from 'src/config/service';
 import { firstValueFrom } from 'rxjs';
 import { Order } from './entities/order.entity';
+import { OrderWithProducts } from './interfaces/order-with-products.interfaces';
+import { PaidOrderDto } from './dto';
 
 @Injectable()
 export class OrdersService extends PrismaClient implements OnModuleInit{
@@ -18,6 +20,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit{
   }
 
   async onModuleInit() {
+    this.logger.log(`Connecting to database: ${process.env.DATABASE_URL}`);
     await this.$connect();
     this.logger.log('Connected to the database');
   }
@@ -169,4 +172,35 @@ export class OrdersService extends PrismaClient implements OnModuleInit{
       data: { status },
     });
   }
+
+  async createPaymentSession(order: OrderWithProducts) {
+    //const paymentSession = await firstValueFrom(this.client.send({cmd: 'create.payment.session'}, order));
+    const paymentSession = await firstValueFrom(this.client.send('create.payment.session', {
+      orderId: order.id,
+      currency: 'usd',
+      items: order.OrderItems.map(item => ({
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+    }));
+    return paymentSession;
+  }
+
+  async paidOrder(paidOrderDto: PaidOrderDto) { 
+    this.logger.log('Processing payment.succeeded event for orderId:', paidOrderDto.orderId);
+    const order = await this.order.update({
+      where: { id: paidOrderDto.orderId },
+      data: { status: OrderStatus.PAID, paid: true, paidAt: new Date(), stripeChargeId: paidOrderDto.stripePaymentId,
+        OrderReceipt:{ 
+          create: {
+            receiptUrl: paidOrderDto.receiptUrl,
+          }
+         }
+      }
+    });
+
+    return order;
+  }
+
 }

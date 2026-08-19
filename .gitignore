@@ -4,6 +4,7 @@
 /build
 
 ./orders-db-data
+/postgres
 
 # Logs
 logs

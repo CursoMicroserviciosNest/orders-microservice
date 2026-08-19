@@ -1,0 +1,55 @@
+
+# Production dependencies (no devDeps)
+FROM node:21-alpine3.19 AS prod-deps
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm ci --only=production
+
+
+# Build stage (all deps + compile)
+FROM node:21-alpine3.19 AS build
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate --schema=./prisma/schema.prisma
+
+RUN npm run build
+
+
+# Final production image
+FROM node:21-alpine3.19 AS prod
+
+WORKDIR /usr/src/app
+
+# Clean production node_modules
+COPY --from=prod-deps /usr/src/app/node_modules ./node_modules
+
+# Generated Prisma client (created at build time)
+COPY --from=build /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+
+# Prisma CLI (needed to run migrate deploy at startup)
+COPY --from=build /usr/src/app/node_modules/prisma ./node_modules/prisma
+COPY --from=build /usr/src/app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+
+# Compiled app
+COPY --from=build /usr/src/app/dist ./dist
+
+# Schema + migrations (needed by migrate deploy)
+COPY --from=build /usr/src/app/prisma ./prisma
+
+ENV NODE_ENV=production
+
+USER node
+
+EXPOSE 3000
+
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy --schema=./prisma/schema.prisma && node dist/main.js"]
