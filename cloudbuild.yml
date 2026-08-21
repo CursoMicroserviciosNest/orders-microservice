@@ -5,7 +5,7 @@ steps:
       [
         'build',
         '-t',
-        'us-east4-docker.pkg.dev/microservices-dev-505620/image-registry/oorders-ms',
+        'us-east4-docker.pkg.dev/microservices-dev-505620/image-registry/orders-ms',
         '-f',
         'dockerfile.prod',
         '--platform=linux/amd64',
