@@ -2,6 +2,9 @@
 # Production dependencies (no devDeps)
 FROM node:21-alpine3.19 AS prod-deps
 
+ARG ORDERS_DATABASE_URL
+ENV DATABASE_URL=$ORDERS_DATABASE_URL
+
 WORKDIR /usr/src/app
 
 COPY package*.json ./
