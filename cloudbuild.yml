@@ -14,6 +14,9 @@ steps:
       'us-east4-docker.pkg.dev/microservices-dev-505620/image-registry/orders-ms',
     ]
 
+options:
+      logging: CLOUD_LOGGING_ONLY
+
 availableSecrets:
   secretManager:
   - versionName: projects/733087881090/secrets/orders_database_url/versions/1
